@@ -9,3 +9,5 @@
 2. Start the development server:
    ```sh
    npm run dev
+
+![Screenshot of the application](image1.png)
