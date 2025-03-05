@@ -18,15 +18,45 @@ function App() {
   const [fairnessExplanation, setFairnessExplanation] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // New state for server connection status
+  const [serverConnected, setServerConnected] = useState(true);
+
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  console.log("Backend URL:", backendUrl);
+
   // Init balance
   useEffect(() => {
     fetchBalance();
   }, []);
 
+  // Periodically check server connection (every 5 seconds)
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      try {
+        // Using the /balance endpoint as a connectivity check
+        await axios.get(`${backendUrl}/balance`);
+        setServerConnected(true);
+      } catch (error) {
+        setServerConnected(false);
+      }
+    };
+
+    checkServerStatus();
+    const intervalId = setInterval(checkServerStatus, 5000);
+    return () => clearInterval(intervalId);
+  }, [backendUrl]);
+
+  // Alert the user when server disconnects
+  useEffect(() => {
+    if (!serverConnected) {
+      alert("Server not connected. Wait for 50 sec.");
+    }
+  }, [serverConnected]);
+
   // Fetch balance
   const fetchBalance = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/balance");
+      const response = await axios.get(`${backendUrl}/balance`);
       setBalance(response.data.balance);
     } catch (error) {
       console.error("Error fetching balance:", error);
@@ -58,7 +88,7 @@ function App() {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
-      const response = await axios.post("http://localhost:5000/roll-dice", {
+      const response = await axios.post(`${backendUrl}/roll-dice`, {
         betAmount,
         clientSeed,
       });
@@ -111,7 +141,7 @@ function App() {
   // Add funds
   const handleAddBalance = async () => {
     try {
-      const response = await axios.post("http://localhost:5000/add-balance", {
+      const response = await axios.post(`${backendUrl}/add-balance`, {
         amount: 1000,
       });
       setBalance(response.data.balance);
@@ -130,9 +160,23 @@ function App() {
             Dice Game
           </h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-end">
           <div className="text-sm text-gray-400">
             Balance: <span className="text-white font-semibold">${balance}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                serverConnected ? "bg-green-500" : "bg-red-500"
+              }`}
+            ></span>
+            {serverConnected ? (
+              <span className="text-green-500">Connected</span>
+            ) : (
+              <span className="text-yellow-500">
+                Server not connected. Wait for 50 sec.
+              </span>
+            )}
           </div>
         </div>
       </nav>
